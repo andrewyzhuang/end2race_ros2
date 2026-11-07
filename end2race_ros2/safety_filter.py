@@ -21,7 +21,7 @@ class RacingSafetyFilter:
 
     def __init__(
         self,
-        wheelbase_m: float = 0.26,
+        wheelbase_m: float = 0.28,
         safety_margin_radius_m: float = 0.18,
         ttc_warning_sec: float = 0.85,
         ttc_critical_sec: float = 0.32,

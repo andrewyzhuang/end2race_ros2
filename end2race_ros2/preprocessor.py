@@ -7,15 +7,18 @@ class End2RacePreprocessor:
     """
     Sanitizes NeoRacer LakiBeam1 LaserScan (~1440 CW samples with rear blind wedge),
     aligns angular convention to F1TENTH 360-deg CCW 180-beam scan, maintains short-term
-    side-corridor obstacle memory across the blind wedge, and applies End2Race sigmoid
-    normalization.
+    side-corridor obstacle memory across the blind wedge, and prepares metric range arrays
+    for the neural policy and safety filter.
+
+    Note: External sigmoid normalization is omitted to match the TorchScript policy model,
+    which performs sigmoid normalization internally within its network graph.
     """
 
     def __init__(
         self,
         num_output_beams: int = 180,
         max_lidar_range_m: float = 10.0,
-        sigmoid_k: float = 0.3,
+        min_lidar_range_m: float = 0.05,
         lidar_distance_scale: float = 1.15,
         speed_input_scale: float = 1.25,
         lidar_scan_clockwise: bool = True,
@@ -28,7 +31,7 @@ class End2RacePreprocessor:
     ):
         self.num_output_beams = num_output_beams
         self.max_range = max_lidar_range_m
-        self.k = sigmoid_k
+        self.min_range = min_lidar_range_m
         self.lidar_distance_scale = lidar_distance_scale
         self.speed_input_scale = speed_input_scale
         self.lidar_scan_clockwise = lidar_scan_clockwise
@@ -38,12 +41,6 @@ class End2RacePreprocessor:
         self.rear_blind_fill = rear_blind_fill_distance_m
         self.side_corridor_hold_sec = side_corridor_hold_sec
         self.median_window = median_filter_window
-
-        # sigmoid normalization
-        # Normalization constant xi so sigma(max_range) == 1.0 and sigma(0.0) == 0.0
-        # Using standard zero-anchored logistic curve: (2 / (1 + exp(-k*x)) - 1) * xi
-        denom = (2.0 / (1.0 + np.exp(-self.k * self.max_range))) - 1.0
-        self.xi = 1.0 / max(denom, 1e-6)
 
         # Temporal memory for side-corridor overtake protection (180 beams)
         self._held_side_ranges = np.full(self.num_output_beams, self.max_range, dtype=np.float32)
@@ -62,7 +59,7 @@ class End2RacePreprocessor:
         Processes a raw LakiBeam1 LaserScan range array and scalar ego speed.
 
         Returns:
-            norm_lidar_180: (180,) float32 array in [0, 1] ordered for End2Race network
+            policy_ranges_180: (180,) float32 metric distances (m) aligned for the End2Race neural network
             forward_ccw_180_m: (180,) float32 metric distances (m) where index 0 is 0 deg (forward)
                                and angles increase CCW (0 -> 90 left -> 180 rear -> 270 right)
             beam_angles_rad: (180,) float32 angles in [-pi, pi] (0 = straight ahead, +pi/2 = left)
@@ -85,9 +82,10 @@ class End2RacePreprocessor:
         )
         scans[blind_mask] = self.rear_blind_fill
 
-        # 2. Sanitize NaNs, infs, and invalid zeros (specular drop-outs or out-of-range)
-        invalid_mask = ~np.isfinite(scans) | (scans <= 0.03)
+        # 2. Sanitize NaNs, infs, and invalid ranges
+        invalid_mask = ~np.isfinite(scans) | (scans < self.min_range)
         scans[invalid_mask] = self.max_range
+        scans = np.clip(scans, self.min_range, self.max_range)
 
         # Optional 3-tap circular median filter to strip single-beam multipath spikes
         if self.median_window == 3:
@@ -106,8 +104,8 @@ class End2RacePreprocessor:
             scans_ccw = scans
 
         # 4. Uniformly downsample from ~1440 beams to 180 beams (2.0 deg spacing)
-        idx_180 = np.linspace(0, n_raw, self.num_output_beams, endpoint=False).astype(np.int32)
-        forward_ccw_180_m = np.clip(scans_ccw[idx_180], 0.0, self.max_range)
+        idx_180 = np.linspace(0, n_raw - 1, self.num_output_beams, dtype=int)
+        forward_ccw_180_m = np.clip(scans_ccw[idx_180], self.min_range, self.max_range)
 
         # 5. Side-Corridor Overtake Hold (protects Stage 4->5 lane recovery when opponent enters blind spot)
         # Beams around 90-135 deg (left rear quarter, indices 45..67) and 225-270 deg (right rear quarter, 112..135)
@@ -129,7 +127,7 @@ class End2RacePreprocessor:
 
         # 6. Apply 1:12 -> 1:10 track geometry scaling for the neural policy
         scaled_ranges = np.clip(
-            forward_ccw_180_m * self.lidar_distance_scale, 0.0, self.max_range
+            forward_ccw_180_m * self.lidar_distance_scale, self.min_range, self.max_range
         )
 
         # 7. Align beam 0 to match End2Race training convention
@@ -139,11 +137,7 @@ class End2RacePreprocessor:
         else:
             policy_ranges_180 = scaled_ranges
 
-        # 8. Sigmoid Normalization (Eq. 2 in End2Race paper): maps [0, 10] -> [0, 1]
-        norm_lidar_180 = (
-            (2.0 / (1.0 + np.exp(-self.k * policy_ranges_180))) - 1.0
-        ) * self.xi
-        norm_lidar_180 = np.clip(norm_lidar_180, 0.0, 1.0).astype(np.float32)
+        policy_ranges_180 = policy_ranges_180.astype(np.float32)
 
         # Compute angles in [-pi, pi] corresponding to forward_ccw_180_m (for safety filter & FTG)
         ccw_angles_rad = np.linspace(
@@ -152,4 +146,4 @@ class End2RacePreprocessor:
         beam_angles_rad = (ccw_angles_rad + np.pi) % (2.0 * np.pi) - np.pi
 
         scaled_ego_speed = float(ego_speed_m_s * self.speed_input_scale)
-        return norm_lidar_180, forward_ccw_180_m, beam_angles_rad, scaled_ego_speed
+        return policy_ranges_180, forward_ccw_180_m, beam_angles_rad, scaled_ego_speed

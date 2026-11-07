@@ -15,7 +15,7 @@ class LidarDiagnosticsNode(Node):
         super().__init__('lidar_diagnostics_node')
 
         self.declare_parameter('scan_topic', '/scan')
-        self.declare_parameter('expected_hz', 40.0)
+        self.declare_parameter('expected_hz', 30.0)
         self.declare_parameter('hz_tolerance_ratio', 0.2)
         self.declare_parameter('max_invalid_beam_ratio', 0.15)
         self.declare_parameter('min_safe_distance_m', 0.25)

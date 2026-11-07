@@ -3,16 +3,14 @@ end2race_policy_node:
     # --- Mode & Runtime Selection ---
     # mode: "end2race" (neural policy) or "ftg" (Follow-the-Gap baseline)
     mode: "end2race"
-    # backend: "torch" (PyTorch FP16/FP32)
-    inference_backend: "torch"
     model_path: "models/end2race_policy_jit_fp16.pt"
     use_fp16: true
-    control_rate_hz: 50.0
+    # NeoRacer LakiBeam1 LiDAR runs at 30 Hz max
+    control_rate_hz: 30.0
 
     # --- Recurrent GRU Architecture (Matched to imitation/model.py) ---
     num_beams: 180
     gru_hidden_dim: 420
-    use_dummy_speed: false
     actions_are_normalized: false
     action_steer_index: 0
     action_speed_index: 1
@@ -23,18 +21,17 @@ end2race_policy_node:
     speed_topic: "/encoder/speed"
     odom_topic: "/odom"
     imu_topic: "/imu/fused"
-    joy_topic: "/joy"
     drive_topic: "/drive"
     dotmatrix_topic: "/dotmatrix/text"
 
     # --- NeoRacer Hardware & Normalization Mapping ---
-    # IMPORTANT: NeoRacer /drive expects normalized [-1.0, 1.0] by default.
-    # Set normalize_drive_output: true to map physical (m/s, rad) -> [-1.0, 1.0].
+    # NeoRacer /drive expects normalized [-1.0, 1.0] by default.
     normalize_drive_output: true
     neoracer_max_physical_speed_m_s: 6.0
-    neoracer_max_physical_steer_rad: 0.61
-    max_steer_rad: 0.42      # End2Race policy physical limit
-    # Set steer_sign: -1.0 if positive policy rad (left in F1TENTH) needs to map to negative (left in NeoRacer)
+    # NeoRacer hardware maximum steering angle is 30.0 degrees = 0.5236 rad (from controller.yaml)
+    neoracer_max_physical_steer_rad: 0.5236
+    # End2Race policy physical steering limit from paper: 0.42 rad
+    max_steer_rad: 0.42
     # NeoRacer docs: +1.0 is full right, -1.0 is full left. F1TENTH Gym: +rad is left, -rad is right.
     steer_sign: -1.0
     steer_trim_normalized: 0.0
@@ -43,7 +40,7 @@ end2race_policy_node:
     # Multiplies real LiDAR ranges before internal model sigmoid so 1:12 track width matches 1:10 Austin track
     lidar_distance_scale: 1.15
     # Scales NeoRacer encoder speed (m/s) -> End2Race input speed (m/s)
-    speed_input_scale: 1.25
+    speed_input_scale: 1.33 # 40Hz / 30Hz
     # Scales End2Race output speed (m/s, up to 8.9) -> NeoRacer target speed (m/s, up to 6.0)
     speed_output_scale: 0.65
     # Hard safety speed ceiling in physical m/s (ramp up: 1.5 -> 3.0 -> 4.5 -> 6.0)
@@ -52,11 +49,9 @@ end2race_policy_node:
 
     # --- LiDAR Preprocessing & 270-deg Blind-Spot Handling ---
     # NeoRacer LakiBeam1: index 0 is 0 deg (forward), rotates clockwise (CW), ~1440 beams
-    # F1TENTH Simulator: rotates counter-clockwise (CCW). Flip CW->CCW to match End2Race training!
+    # F1TENTH Simulator: rotates counter-clockwise (CCW). Flip CW->CCW to match End2Race training.
     lidar_scan_clockwise: true
-    # Whether End2Race index 0 is forward (0 deg) or -180 deg (back).
     # Standard 360 F1TENTH scan starts at -180 deg (rear) and goes CCW to +180 deg, OR 0 deg (front).
-    # Set shift_index_zero_to_rear: true if checkpoint was trained with beam 90 = straight ahead.
     shift_index_zero_to_rear: true
     # LakiBeam1 rear chassis occlusion wedge in degrees (measured CW from 0=forward)
     rear_blind_angle_min_deg: 135.0
@@ -71,8 +66,8 @@ end2race_policy_node:
     median_filter_window: 3
 
     # --- Safety Filter, Traction Circle & Drift-Assist Parameters ---
-    wheelbase_m: 0.26
-    vehicle_width_m: 0.22
+    # NeoRacer wheelbase from chassis specification: 280 mm = 0.28 m
+    wheelbase_m: 0.28
     safety_margin_radius_m: 0.18
     ttc_warning_sec: 0.85
     ttc_critical_sec: 0.32
@@ -89,13 +84,14 @@ end2race_policy_node:
     yaw_damping_kp: 0.08
 
     # Actuator smoothing to prevent straight-line servo oscillation
-    steering_ema_alpha: 0.80   # 1.0 = no smoothing, 0.7 = light low-pass smoothing
+    steering_ema_alpha: 0.70 # lower value = more smoothing
     max_steering_rate_rad_s: 3.2
 
 lidar_diagnostics_node:
   ros__parameters:
     scan_topic: "/scan"
-    expected_hz: 40.0
+    # NeoRacer LakiBeam1 scan frequency is 30 Hz
+    expected_hz: 30.0
     hz_tolerance_ratio: 0.20
     max_invalid_beam_ratio: 0.15
     min_safe_distance_m: 0.25
