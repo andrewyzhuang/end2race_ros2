@@ -9,12 +9,7 @@ __pycache__/
 *$py.class
 *.egg-info/
 
-# Model weights & TensorRT/ONNX binaries
-models/*.pt
-models/*.pth
-models/*.onnx
-models/*.engine
-models/*.plan
+# gitkeep
 !models/.gitkeep
 
 # ROS bags and diagnostics logs
