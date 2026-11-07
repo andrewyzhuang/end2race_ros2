@@ -62,8 +62,6 @@ class End2RacePolicyNode(Node):
         self.declare_parameter('rear_blind_fill_distance_m', 10.0)
         self.declare_parameter('max_lidar_range_m', 10.0)
         self.declare_parameter('min_lidar_range_m', 0.05)
-        self.declare_parameter('apply_external_sigmoid', False)
-        self.declare_parameter('sigmoid_k', 0.3)
         self.declare_parameter('side_corridor_hold_sec', 0.25)
         self.declare_parameter('median_filter_window', 3)
 
@@ -120,8 +118,6 @@ class End2RacePolicyNode(Node):
         self.blind_fill_m = float(self.get_parameter('rear_blind_fill_distance_m').value)
         self.max_range = float(self.get_parameter('max_lidar_range_m').value)
         self.min_range = float(self.get_parameter('min_lidar_range_m').value)
-        self.apply_ext_sigmoid = bool(self.get_parameter('apply_external_sigmoid').value)
-        self.sigmoid_k = float(self.get_parameter('sigmoid_k').value)
         self.corridor_hold_sec = float(self.get_parameter('side_corridor_hold_sec').value)
         self.median_win = int(self.get_parameter('median_filter_window').value)
 
@@ -296,9 +292,6 @@ class End2RacePolicyNode(Node):
 
         # 6. Sim-to-real track-width distance scaling
         beams_180_scaled = np.clip(beams_180 * self.lidar_scale, self.min_range, self.max_range)
-
-        if self.apply_ext_sigmoid:
-            beams_180_scaled = 2.0 / (1.0 + np.exp(self.sigmoid_k * beams_180_scaled))
 
         return beams_180_scaled.astype(np.float32), fwd_min_dist
 

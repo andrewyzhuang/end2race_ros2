@@ -3,7 +3,7 @@ end2race_policy_node:
     # --- Mode & Runtime Selection ---
     # mode: "end2race" (neural policy) or "ftg" (Follow-the-Gap baseline)
     mode: "end2race"
-    # backend: "torch" (PyTorch FP16/FP32), "onnx" (ONNXRuntime TensorRT/CUDA), or "trt" (TensorRT .engine)
+    # backend: "torch" (PyTorch FP16/FP32)
     inference_backend: "torch"
     model_path: "models/end2race_policy_jit_fp16.pt"
     use_fp16: true
@@ -32,8 +32,8 @@ end2race_policy_node:
     # Set normalize_drive_output: true to map physical (m/s, rad) -> [-1.0, 1.0].
     normalize_drive_output: true
     neoracer_max_physical_speed_m_s: 6.0
-    neoracer_max_physical_steer_rad: 0.42
-    max_steer_rad: 0.4189      # ~24 degrees (End2Race policy physical limit)
+    neoracer_max_physical_steer_rad: 0.61
+    max_steer_rad: 0.42      # End2Race policy physical limit
     # Set steer_sign: -1.0 if positive policy rad (left in F1TENTH) needs to map to negative (left in NeoRacer)
     # NeoRacer docs: +1.0 is full right, -1.0 is full left. F1TENTH Gym: +rad is left, -rad is right.
     steer_sign: -1.0
@@ -64,10 +64,7 @@ end2race_policy_node:
     rear_blind_fill_distance_m: 10.0
     max_lidar_range_m: 10.0
     min_lidar_range_m: 0.05
-    # Note: torch.jit model already includes 2 * sigmoid(-lidar_normalization_k * x) internally.
-    # Set apply_external_sigmoid: false when using export_model.py TorchScript output.
-    apply_external_sigmoid: false
-    sigmoid_k: 0.3
+
     # Temporal persistence (seconds) on rear-quarter beams (90-135 deg & 225-270 deg)
     # Prevents premature cut-back collisions during Stage 5 of overtaking when opponent enters blind spot
     side_corridor_hold_sec: 0.25
