@@ -1,0 +1,23 @@
+# ROS 2 build artifacts
+build/
+install/
+log/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# Model weights & TensorRT/ONNX binaries
+models/*.pt
+models/*.pth
+models/*.onnx
+models/*.engine
+models/*.plan
+!models/.gitkeep
+
+# ROS bags and diagnostics logs
+*.db3
+*.mcap
+bags/
