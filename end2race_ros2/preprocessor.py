@@ -23,6 +23,7 @@ class End2RacePreprocessor:
         speed_input_scale: float = 1.25,
         lidar_scan_clockwise: bool = True,
         shift_index_zero_to_rear: bool = True,
+        scan_index0_at_rear: bool = False,
         rear_blind_angle_min_deg: float = 135.0,
         rear_blind_angle_max_deg: float = 225.0,
         rear_blind_fill_distance_m: float = 10.0,
@@ -36,6 +37,7 @@ class End2RacePreprocessor:
         self.speed_input_scale = speed_input_scale
         self.lidar_scan_clockwise = lidar_scan_clockwise
         self.shift_index_zero_to_rear = shift_index_zero_to_rear
+        self.scan_index0_at_rear = scan_index0_at_rear
         self.rear_blind_min_deg = rear_blind_angle_min_deg
         self.rear_blind_max_deg = rear_blind_angle_max_deg
         self.rear_blind_fill = rear_blind_fill_distance_m
@@ -74,6 +76,11 @@ class End2RacePreprocessor:
         if n_raw == 0:
             scans = np.full(1440, self.max_range, dtype=np.float32)
             n_raw = 1440
+
+        # 0. Real NeoRacer /scan starts at the rear (index 0 = rear, CCW). Roll by half a turn
+        #    so the rest of the pipeline sees index 0 = forward.
+        if self.scan_index0_at_rear:
+            scans = np.roll(scans, n_raw // 2)
 
         # 1. Mask out rear chassis occlusion wedge (135 deg to 225 deg CW on LakiBeam1)
         raw_angles_deg = np.linspace(0.0, 360.0, n_raw, endpoint=False, dtype=np.float32)

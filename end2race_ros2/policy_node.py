@@ -56,6 +56,7 @@ class End2RacePolicyNode(Node):
 
         self.declare_parameter('lidar_scan_clockwise', True)
         self.declare_parameter('shift_index_zero_to_rear', True)
+        self.declare_parameter('scan_index0_at_rear', False)
         self.declare_parameter('rear_blind_angle_min_deg', 135.0)
         self.declare_parameter('rear_blind_angle_max_deg', 225.0)
         self.declare_parameter('rear_blind_fill_distance_m', 10.0)
@@ -110,6 +111,7 @@ class End2RacePolicyNode(Node):
 
         self.scan_cw = bool(self.get_parameter('lidar_scan_clockwise').value)
         self.shift_zero_rear = bool(self.get_parameter('shift_index_zero_to_rear').value)
+        self.scan_index0_at_rear = bool(self.get_parameter('scan_index0_at_rear').value)
         self.blind_min_deg = float(self.get_parameter('rear_blind_angle_min_deg').value)
         self.blind_max_deg = float(self.get_parameter('rear_blind_angle_max_deg').value)
         self.blind_fill_m = float(self.get_parameter('rear_blind_fill_distance_m').value)
@@ -144,6 +146,7 @@ class End2RacePolicyNode(Node):
             speed_input_scale=self.speed_in_scale,
             lidar_scan_clockwise=self.scan_cw,
             shift_index_zero_to_rear=self.shift_zero_rear,
+            scan_index0_at_rear=self.scan_index0_at_rear,
             rear_blind_angle_min_deg=self.blind_min_deg,
             rear_blind_angle_max_deg=self.blind_max_deg,
             rear_blind_fill_distance_m=self.blind_fill_m,

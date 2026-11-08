@@ -48,9 +48,11 @@ end2race_policy_node:
     min_speed_floor_m_s: 0.0
 
     # --- LiDAR Preprocessing & 270-deg Blind-Spot Handling ---
-    # NeoRacer LakiBeam1: index 0 is 0 deg (forward), rotates clockwise (CW), ~1440 beams
-    # F1TENTH Simulator: rotates counter-clockwise (CCW). Flip CW->CCW to match End2Race training.
-    lidar_scan_clockwise: true
+    # NeoRacer /scan (verified on the car, 11/6 and bag s1_2_walk): index 0 is the REAR, rotates
+    # counter-clockwise (CCW), 1440 beams. scan_index0_at_rear rolls the scan by half a turn so the
+    # rest of the pipeline sees index 0 = forward. No CW->CCW flip is needed.
+    lidar_scan_clockwise: false
+    scan_index0_at_rear: true
     # Standard 360 F1TENTH scan starts at -180 deg (rear) and goes CCW to +180 deg, OR 0 deg (front).
     shift_index_zero_to_rear: true
     # LakiBeam1 rear chassis occlusion wedge in degrees (measured CW from 0=forward)
