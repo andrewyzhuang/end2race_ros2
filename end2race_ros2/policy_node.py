@@ -47,6 +47,7 @@ class End2RacePolicyNode(Node):
         self.declare_parameter('max_steer_rad', 0.42)
         self.declare_parameter('steer_sign', -1.0)
         self.declare_parameter('steer_trim_normalized', 0.0)
+        self.declare_parameter('allow_ftg_fallback', False)
 
         self.declare_parameter('lidar_distance_scale', 1.15)
         self.declare_parameter('speed_input_scale', 1.25)
@@ -85,6 +86,7 @@ class End2RacePolicyNode(Node):
         # --- 2. Read Parameters ---
         self.mode = self.get_parameter('mode').value
         self.model_path = self.get_parameter('model_path').value
+        self.allow_ftg_fallback = bool(self.get_parameter('allow_ftg_fallback').value)
         self.use_fp16 = bool(self.get_parameter('use_fp16').value)
         self.control_rate = float(self.get_parameter('control_rate_hz').value)
         self.dt = 1.0 / max(self.control_rate, 1.0)
@@ -244,6 +246,10 @@ class End2RacePolicyNode(Node):
             self.get_logger().info(f"Loaded TorchScript GRU policy: {self.model_path}")
         except Exception as e:
             self.get_logger().error(f"Failed to load model '{self.model_path}': {e}")
+            if not self.allow_ftg_fallback:
+                raise RuntimeError(
+                    f"Model load failed. Set allow_ftg_fallback:=true to run FTG instead: {e}"
+                ) from e
             self.jit_model = None
 
     def scan_cb(self, msg: LaserScan):
