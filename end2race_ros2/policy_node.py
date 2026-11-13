@@ -266,7 +266,7 @@ class End2RacePolicyNode(Node):
         self.measured_yaw_rate = float(msg.angular_velocity.z)
 
     def reset_gru_state(self):
-        self.h_state.zero_()
+        self.h_state = torch.zeros_like(self.h_state)
 
     def publish_drive(self, physical_steer_rad: float, physical_speed_mps: float):
         msg = AckermannDriveStamped()
