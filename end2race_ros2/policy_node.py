@@ -7,7 +7,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
-from std_msgs.msg import Float32, String
+from std_msgs.msg import Float32, Float32MultiArray, String
 from sensor_msgs.msg import LaserScan, Imu
 from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped
@@ -223,6 +223,8 @@ class End2RacePolicyNode(Node):
         self.dotmatrix_pub = self.create_publisher(
             String, self.get_parameter('dotmatrix_topic').value, 10
         )
+        # v3 debug: model output before and after the safety filter (field order in control_loop step 5b)
+        self.debug_pub = self.create_publisher(Float32MultiArray, '/end2race/debug', 10)
 
         self.timer = self.create_timer(self.dt, self.control_loop)
         self.get_logger().info(
@@ -301,6 +303,7 @@ class End2RacePolicyNode(Node):
         )
 
         # 3. Compute Actions (Follow-The-Gap or End2Race Neural Policy)
+        model_speed_raw = float('nan')  # v3 debug: stays NaN in FTG mode
         if self.mode == 'ftg' or self.jit_model is None:
             target_steer_rad, target_speed_mps = self.ftg_controller.compute_action(
                 forward_ccw_180_m, beam_angles_rad
@@ -314,6 +317,7 @@ class End2RacePolicyNode(Node):
 
             raw_steer = float(raw_action[self.steer_idx])
             raw_speed = float(raw_action[self.speed_idx])
+            model_speed_raw = raw_speed
 
             if self.actions_are_normalized:
                 target_steer_rad = np.clip(raw_steer, -1.0, 1.0) * self.max_steer_rad
@@ -346,6 +350,30 @@ class End2RacePolicyNode(Node):
             dot_msg = String()
             dot_msg.data = status_code
             self.dotmatrix_pub.publish(dot_msg)
+
+        # 5b. v3 debug topic. Fields:
+        # [0] model steer rad (before filter), [1] model speed m/s in model world,
+        # [2] model speed m/s real (before filter), [3] final steer rad, [4] final speed m/s,
+        # [5] min TTC s, [6] status 0=OK 1=TTC-W 2=E-BRK 3=DRIFT -1=other,
+        # [7] GRU reset 0/1, [8] scaled speed input to model, [9] measured speed m/s.
+        # Fields 0 to 2 are NaN in FTG mode.
+        is_model = not np.isnan(model_speed_raw)
+        nan = float('nan')
+        status_id = {'OK': 0, 'TTC-W': 1, 'E-BRK': 2, 'DRIFT': 3}.get(status_code, -1)
+        debug_msg = Float32MultiArray()
+        debug_msg.data = [
+            float(target_steer_rad) if is_model else nan,
+            model_speed_raw,
+            float(target_speed_mps) if is_model else nan,
+            float(cmd_steer_rad),
+            float(cmd_speed_mps),
+            float(min_ttc_sec),
+            float(status_id),
+            1.0 if reset_gru else 0.0,
+            float(scaled_ego_speed),
+            float(self.measured_speed_mps),
+        ]
+        self.debug_pub.publish(debug_msg)
 
         # 6. Publish Actuation Command
         self.publish_drive(cmd_steer_rad, cmd_speed_mps)
