@@ -1,4 +1,5 @@
-# policy_params v2 (2026-11-13): corridor baseline, track width W = 1.5 m.
+# policy_params v2a (2026-11-13): v2 with TTC thresholds back to v1 (0.85 / 0.32). Track width W = 1.5 m.
+# v2 backup: ros2node_mybranch/config_versions/policy_params_v2.yaml
 # v1 backup is outside the repo: ros2node_mybranch/config_versions/policy_params_v1.yaml
 end2race_policy_node:
   ros__parameters:
@@ -77,9 +78,9 @@ end2race_policy_node:
     # NeoRacer wheelbase from chassis specification: 280 mm = 0.28 m
     wheelbase_m: 0.28
     safety_margin_radius_m: 0.18
-    # v2: lowered from 0.85 / 0.32, which would intervene on most training-like driving
-    ttc_warning_sec: 0.50
-    ttc_critical_sec: 0.25
+    # v2a: back to v1 values to test if late turning in v2 came from the lower TTC thresholds
+    ttc_warning_sec: 0.85
+    ttc_critical_sec: 0.32
     ttc_ebrake_speed_m_s: 0.0
 
     # Friction-circle lateral acceleration limit (m/s^2). Higher = less corner-entry throttle roll-off.
