@@ -87,7 +87,7 @@ end2race_policy_node:
     yaw_damping_kp: 0.08
 
     # Actuator smoothing to prevent straight-line servo oscillation
-    steering_ema_alpha: 0.2 # lower value = more smoothing
+    steering_ema_alpha: 1 # lower value = more smoothing
     max_steering_rate_rad_s: 3.2
 
 lidar_diagnostics_node:
