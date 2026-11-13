@@ -38,7 +38,7 @@ end2race_policy_node:
     # NeoRacer vehicle test (11/6): positive steering command = left, negative = right.
     # Policy output follows F1TENTH Gym: +rad is left, -rad is right. So the sign is +1.0.
     steer_sign: 1.0
-    steer_trim_normalized: 0.0
+    steer_trim_normalized: 0.05
 
     # --- Sim-to-Real Domain Adaptation Scales ---
     # s_d = training track width / real track width = 2.2 m (Austin) / 1.5 m (corridor) = 1.467
