@@ -45,7 +45,7 @@ end2race_policy_node:
     # Scales End2Race output speed (m/s, up to 8.9) -> NeoRacer target speed (m/s, up to 6.0)
     speed_output_scale: 0.65
     # Hard safety speed ceiling in physical m/s (ramp up: 1.5 -> 3.0 -> 4.5 -> 6.0)
-    max_speed_cap_m_s: 3
+    max_speed_cap_m_s: 3.0
     min_speed_floor_m_s: 0.0
 
     # --- LiDAR Preprocessing & 270-deg Blind-Spot Handling ---
