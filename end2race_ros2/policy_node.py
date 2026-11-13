@@ -47,6 +47,7 @@ class End2RacePolicyNode(Node):
         self.declare_parameter('max_steer_rad', 0.42)
         self.declare_parameter('steer_sign', -1.0)
         self.declare_parameter('steer_trim_normalized', 0.0)
+        self.declare_parameter('allow_ftg_fallback', False)
 
         self.declare_parameter('lidar_distance_scale', 1.15)
         self.declare_parameter('speed_input_scale', 1.25)
@@ -56,6 +57,7 @@ class End2RacePolicyNode(Node):
 
         self.declare_parameter('lidar_scan_clockwise', True)
         self.declare_parameter('shift_index_zero_to_rear', True)
+        self.declare_parameter('scan_index0_at_rear', False)
         self.declare_parameter('rear_blind_angle_min_deg', 135.0)
         self.declare_parameter('rear_blind_angle_max_deg', 225.0)
         self.declare_parameter('rear_blind_fill_distance_m', 10.0)
@@ -84,6 +86,7 @@ class End2RacePolicyNode(Node):
         # --- 2. Read Parameters ---
         self.mode = self.get_parameter('mode').value
         self.model_path = self.get_parameter('model_path').value
+        self.allow_ftg_fallback = bool(self.get_parameter('allow_ftg_fallback').value)
         self.use_fp16 = bool(self.get_parameter('use_fp16').value)
         self.control_rate = float(self.get_parameter('control_rate_hz').value)
         self.dt = 1.0 / max(self.control_rate, 1.0)
@@ -110,6 +113,7 @@ class End2RacePolicyNode(Node):
 
         self.scan_cw = bool(self.get_parameter('lidar_scan_clockwise').value)
         self.shift_zero_rear = bool(self.get_parameter('shift_index_zero_to_rear').value)
+        self.scan_index0_at_rear = bool(self.get_parameter('scan_index0_at_rear').value)
         self.blind_min_deg = float(self.get_parameter('rear_blind_angle_min_deg').value)
         self.blind_max_deg = float(self.get_parameter('rear_blind_angle_max_deg').value)
         self.blind_fill_m = float(self.get_parameter('rear_blind_fill_distance_m').value)
@@ -144,6 +148,7 @@ class End2RacePolicyNode(Node):
             speed_input_scale=self.speed_in_scale,
             lidar_scan_clockwise=self.scan_cw,
             shift_index_zero_to_rear=self.shift_zero_rear,
+            scan_index0_at_rear=self.scan_index0_at_rear,
             rear_blind_angle_min_deg=self.blind_min_deg,
             rear_blind_angle_max_deg=self.blind_max_deg,
             rear_blind_fill_distance_m=self.blind_fill_m,
@@ -241,6 +246,10 @@ class End2RacePolicyNode(Node):
             self.get_logger().info(f"Loaded TorchScript GRU policy: {self.model_path}")
         except Exception as e:
             self.get_logger().error(f"Failed to load model '{self.model_path}': {e}")
+            if not self.allow_ftg_fallback:
+                raise RuntimeError(
+                    f"Model load failed. Set allow_ftg_fallback:=true to run FTG instead: {e}"
+                ) from e
             self.jit_model = None
 
     def scan_cb(self, msg: LaserScan):
@@ -257,7 +266,7 @@ class End2RacePolicyNode(Node):
         self.measured_yaw_rate = float(msg.angular_velocity.z)
 
     def reset_gru_state(self):
-        self.h_state.zero_()
+        self.h_state = torch.zeros_like(self.h_state)
 
     def publish_drive(self, physical_steer_rad: float, physical_speed_mps: float):
         msg = AckermannDriveStamped()
