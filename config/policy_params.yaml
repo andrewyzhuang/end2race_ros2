@@ -1,3 +1,6 @@
+# policy_params v2a (2026-11-13): v2 with TTC thresholds back to v1 (0.85 / 0.32). Track width W = 1.5 m.
+# v2 backup: ros2node_mybranch/config_versions/policy_params_v2.yaml
+# v1 backup is outside the repo: ros2node_mybranch/config_versions/policy_params_v1.yaml
 end2race_policy_node:
   ros__parameters:
     # --- Mode & Runtime Selection ---
@@ -35,15 +38,16 @@ end2race_policy_node:
     # NeoRacer vehicle test (11/6): positive steering command = left, negative = right.
     # Policy output follows F1TENTH Gym: +rad is left, -rad is right. So the sign is +1.0.
     steer_sign: 1.0
-    steer_trim_normalized: 0.0
+    steer_trim_normalized: 0.05 # 0.05 * 30 = 1.5 degree to the left
 
     # --- Sim-to-Real Domain Adaptation Scales ---
-    # Multiplies real LiDAR ranges before internal model sigmoid so 1:12 track width matches 1:10 Austin track
-    lidar_distance_scale: 1.15
+    # s_d = training track width / real track width = 2.2 m (Austin) / 1.5 m (corridor) = 1.467
+    lidar_distance_scale: 1.467
     # Scales NeoRacer encoder speed (m/s) -> End2Race input speed (m/s)
-    speed_input_scale: 1.33 # 40Hz / 30Hz
-    # Scales End2Race output speed (m/s, up to 8.9) -> NeoRacer target speed (m/s, up to 6.0)
-    speed_output_scale: 0.65
+    # s_d * (40 Hz / 30 Hz) = 1.467 * 1.333, so motion per control step matches training
+    speed_input_scale: 1.956
+    # Scales End2Race output speed (m/s) -> NeoRacer target speed (m/s). Inverse of speed_input_scale.
+    speed_output_scale: 0.511
     # Hard safety speed ceiling in physical m/s (ramp up: 1.5 -> 3.0 -> 4.5 -> 6.0)
     max_speed_cap_m_s: 3.0
     min_speed_floor_m_s: 0.0
@@ -60,18 +64,21 @@ end2race_policy_node:
     rear_blind_angle_min_deg: 135.0
     rear_blind_angle_max_deg: 225.0
     rear_blind_fill_distance_m: 10.0
-    max_lidar_range_m: 10.0
+    # Training scans go up to 30 m (simulator default max_range), not 10 m
+    max_lidar_range_m: 30.0
     min_lidar_range_m: 0.05
 
     # Temporal persistence (seconds) on rear-quarter beams (90-135 deg & 225-270 deg)
     # Prevents premature cut-back collisions during Stage 5 of overtaking when opponent enters blind spot
-    side_corridor_hold_sec: 0.25
-    median_filter_window: 3
+    # v2: both off (0.0 and 1), because training had no such processing
+    side_corridor_hold_sec: 0.0
+    median_filter_window: 1
 
     # --- Safety Filter, Traction Circle & Drift-Assist Parameters ---
     # NeoRacer wheelbase from chassis specification: 280 mm = 0.28 m
     wheelbase_m: 0.28
     safety_margin_radius_m: 0.18
+    # v2a: back to v1 values to test if late turning in v2 came from the lower TTC thresholds
     ttc_warning_sec: 0.85
     ttc_critical_sec: 0.32
     ttc_ebrake_speed_m_s: 0.0
