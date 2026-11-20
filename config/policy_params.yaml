@@ -50,7 +50,7 @@ end2race_policy_node:
     speed_output_scale: 0.511
     # Hard safety speed ceiling in physical m/s (ramp up: 1.5 -> 3.0 -> 4.5 -> 6.0)
     max_speed_cap_m_s: 3.0
-    min_speed_floor_m_s: 0.0
+    min_speed_floor_m_s: 1.0
 
     # --- LiDAR Preprocessing & 270-deg Blind-Spot Handling ---
     # NeoRacer /scan (verified on the car, 11/6 and bag s1_2_walk): index 0 is the REAR, rotates
