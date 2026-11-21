@@ -63,7 +63,7 @@ end2race_policy_node:
     rear_blind_angle_max_deg: 225.0
     rear_blind_fill_distance_m: 10.0
     # Training scans go up to 30 m (simulator default max_range), not 10 m
-    max_lidar_range_m: 30.0
+    max_lidar_range_m: 10.0
     min_lidar_range_m: 0.05
 
     # Temporal persistence (seconds) on rear-quarter beams (90-135 deg & 225-270 deg)
