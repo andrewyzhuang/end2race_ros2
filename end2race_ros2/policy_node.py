@@ -43,7 +43,6 @@ class End2RacePolicyNode(Node):
 
         self.declare_parameter('normalize_drive_output', True)
         self.declare_parameter('neoracer_max_physical_speed_m_s', 6.0)
-        self.declare_parameter('neoracer_max_physical_steer_rad', 0.5236)
         self.declare_parameter('max_steer_rad', 0.42)
         self.declare_parameter('steer_sign', -1.0)
         self.declare_parameter('steer_trim_normalized', 0.0)
@@ -100,7 +99,6 @@ class End2RacePolicyNode(Node):
 
         self.normalize_drive_output = bool(self.get_parameter('normalize_drive_output').value)
         self.neoracer_max_speed = float(self.get_parameter('neoracer_max_physical_speed_m_s').value)
-        self.neoracer_max_steer = float(self.get_parameter('neoracer_max_physical_steer_rad').value)
         self.max_steer_rad = float(self.get_parameter('max_steer_rad').value)
         self.steer_sign = float(self.get_parameter('steer_sign').value)
         self.steer_trim = float(self.get_parameter('steer_trim_normalized').value)
@@ -276,7 +274,7 @@ class End2RacePolicyNode(Node):
         msg.header.frame_id = 'base_link'
 
         if self.normalize_drive_output:
-            norm_steer = (physical_steer_rad / max(self.neoracer_max_steer, 1e-4)) * self.steer_sign + self.steer_trim
+            norm_steer = (physical_steer_rad / max(self.max_steer_rad, 1e-4)) * self.steer_sign + self.steer_trim
             norm_speed = physical_speed_mps / max(self.neoracer_max_speed, 1e-4)
             msg.drive.steering_angle = float(np.clip(norm_steer, -1.0, 1.0))
             msg.drive.speed = float(np.clip(norm_speed, -1.0, 1.0))
