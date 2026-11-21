@@ -39,13 +39,12 @@ end2race_policy_node:
     steer_trim_normalized: 0.05 # 0.05 * 30 = 1.5 degree to the left
 
     # --- Sim-to-Real Domain Adaptation Scales ---
-    # s_d = training track width / real track width = 2.2 m (Austin) / 1.5 m (corridor) = 1.467
-    lidar_distance_scale: 1.467
+    # s_d = training track width / real track width
+    lidar_distance_scale: 1
     # Scales NeoRacer encoder speed (m/s) -> End2Race input speed (m/s)
-    # s_d * (40 Hz / 30 Hz) = 1.467 * 1.333, so motion per control step matches training
-    speed_input_scale: 1.956
+    speed_input_scale: 1
     # Scales End2Race output speed (m/s) -> NeoRacer target speed (m/s). Inverse of speed_input_scale.
-    speed_output_scale: 0.511
+    speed_output_scale: 1
     # Hard safety speed ceiling in physical m/s (ramp up: 1.5 -> 3.0 -> 4.5 -> 6.0)
     max_speed_cap_m_s: 3.0
     min_speed_floor_m_s: 1.0
