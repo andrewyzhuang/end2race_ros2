@@ -6,7 +6,7 @@ end2race_policy_node:
     # --- Mode & Runtime Selection ---
     # mode: "end2race" (neural policy) or "ftg" (Follow-the-Gap baseline)
     mode: "end2race"
-    model_path: "models/end2race_policy_jit_fp16.pt"
+    model_path: "models/end2race_retrain_v1_jit_fp16.pt"
     use_fp16: true
     # NeoRacer LakiBeam1 LiDAR runs at 30 Hz max
     control_rate_hz: 30.0
@@ -40,13 +40,13 @@ end2race_policy_node:
 
     # --- Sim-to-Real Domain Adaptation Scales ---
     # s_d = training track width / real track width
-    lidar_distance_scale: 1
+    lidar_distance_scale: 1.0
     # Scales NeoRacer encoder speed (m/s) -> End2Race input speed (m/s)
-    speed_input_scale: 1
+    speed_input_scale: 1.0
     # Scales End2Race output speed (m/s) -> NeoRacer target speed (m/s). Inverse of speed_input_scale.
-    speed_output_scale: 1
+    speed_output_scale: 1.0
     # Hard safety speed ceiling in physical m/s (ramp up: 1.5 -> 3.0 -> 4.5 -> 6.0)
-    max_speed_cap_m_s: 3.0
+    max_speed_cap_m_s: 6.0
     min_speed_floor_m_s: 1.0
 
     # --- LiDAR Preprocessing & 270-deg Blind-Spot Handling ---

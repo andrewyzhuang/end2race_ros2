@@ -9,7 +9,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     pkg_share = get_package_share_directory('end2race_ros2')
     default_config_path = os.path.join(pkg_share, 'config', 'policy_params.yaml')
-    default_model_path = os.path.join(pkg_share, 'models', 'end2race_policy_jit_fp16.pt')
+    default_model_path = os.path.join(pkg_share, 'models', 'end2race_retrain_v1_jit_fp16.pt')
 
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
